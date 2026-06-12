@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Sourdough Pizza — by Omar</title>
+<meta name="description" content="A sourdough pizza dough calculator built around your starter's doubling time. Tells you the starter to weigh and when the dough is ready to open." />
+<meta name="theme-color" content="#F6EEE0" />
+<link rel="manifest" href="./manifest.webmanifest" />
+<link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Sourdough Pizza" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#F6EEE0; --paper2:#FBF6EC; --card:#FFFBF3; --line:#E3D4BC; --line2:#D6C3A4;
+    --ink:#2A2018; --ink2:#6B5D4F; --ink3:#9A8B79;
+    --ember:#D8552A; --ember-d:#A83D1C; --ember-bg:#FBE3D4;
+    --cold:#4E84A0; --cold-d:#36617A; --cold-bg:#DDE9EE;
+    --gold:#E0A23C; --green:#6E8B3D; --amber:#C2872A;
+    --disp:'Fraunces',Georgia,serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+    --body:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+    --r:14px; --sh:0 1px 2px rgba(42,32,24,.04), 0 6px 22px rgba(42,32,24,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--paper);color:var(--ink);font-family:var(--body);
+    -webkit-font-smoothing:antialiased;line-height:1.5;
+    background-image:radial-gradient(circle at 18% 8%, #FBF4E8 0, transparent 42%),
+                     radial-gradient(circle at 92% 100%, #F2E7D2 0, transparent 46%);}
+  .wrap{max-width:680px;margin:0 auto;padding:26px 18px calc(70px + env(safe-area-inset-bottom))}
+
+  /* header */
+  .head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:6px}
+  .kicker{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--ember-d);font-weight:500}
+  h1{font-family:var(--disp);font-weight:600;font-size:34px;line-height:1.02;margin:6px 0 0;letter-spacing:-.01em}
+  h1 em{font-style:italic;font-weight:400;color:var(--ember-d)}
+  .sub{color:var(--ink2);font-size:14px;margin-top:9px;max-width:46ch}
+  .unit-toggle{flex:none;display:flex;border:1px solid var(--line2);border-radius:999px;overflow:hidden;background:var(--card)}
+  .unit-toggle button{border:0;background:transparent;font-family:var(--mono);font-size:12px;padding:6px 11px;color:var(--ink3);cursor:pointer}
+  .unit-toggle button.on{background:var(--ink);color:var(--paper)}
+
+  /* sections */
+  .sec{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:18px 18px 16px;margin-top:14px;box-shadow:var(--sh)}
+  .sec-h{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
+  .sec-n{font-family:var(--disp);font-size:15px;font-weight:600;color:var(--ember);font-variant-numeric:tabular-nums}
+  .sec-t{font-family:var(--disp);font-size:18px;font-weight:500;letter-spacing:-.01em}
+  .sec-note{font-size:12.5px;color:var(--ink2);margin:-6px 0 14px}
+
+  /* pills / segmented */
+  .seg{display:flex;gap:8px;flex-wrap:wrap}
+  .pill{flex:1;min-width:96px;border:1.5px solid var(--line2);background:var(--paper2);border-radius:11px;
+    padding:11px 10px;cursor:pointer;text-align:left;transition:.15s;color:var(--ink)}
+  .pill:hover{border-color:var(--ink3)}
+  .pill .pt{font-family:var(--disp);font-size:15px;font-weight:600;display:flex;align-items:center;gap:7px}
+  .pill .pd{font-size:11.5px;color:var(--ink2);margin-top:2px}
+  .pill.on{border-color:var(--ember);background:var(--ember-bg)}
+  .pill.on.cold{border-color:var(--cold);background:var(--cold-bg)}
+  .pill .em{font-size:18px;line-height:1}
+
+  /* stepper + weight pills */
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row>.col{flex:1;min-width:140px}
+  .lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;display:block}
+  .stepper{display:flex;align-items:center;border:1.5px solid var(--line2);border-radius:11px;background:var(--paper2);overflow:hidden}
+  .stepper button{border:0;background:transparent;font-size:20px;width:42px;height:46px;cursor:pointer;color:var(--ember-d);font-family:var(--mono)}
+  .stepper button:active{background:var(--ember-bg)}
+  .stepper .val{flex:1;text-align:center;font-family:var(--mono);font-size:18px;font-weight:500}
+  .wpills{display:flex;gap:7px}
+  .wp{flex:1;border:1.5px solid var(--line2);background:var(--paper2);border-radius:10px;padding:9px 4px;text-align:center;cursor:pointer}
+  .wp .wn{font-family:var(--mono);font-size:15px;font-weight:600}
+  .wp .wl{font-size:10px;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
+  .wp.on{border-color:var(--ember);background:var(--ember-bg)}
+
+  /* sliders */
+  .slider{margin-top:4px}
+  .slider .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
+  .slider .v{font-family:var(--mono);font-size:16px;font-weight:600}
+  .slider .v small{color:var(--ink3);font-weight:400;font-size:12px}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;
+    background:linear-gradient(90deg,var(--ember) 0,var(--gold) 100%);outline:none;margin:8px 0 2px}
+  input[type=range].cold{background:linear-gradient(90deg,var(--cold) 0,#9bbccb 100%)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+    background:var(--card);border:2.5px solid var(--ink);cursor:pointer;box-shadow:0 2px 5px rgba(42,32,24,.18)}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--card);border:2.5px solid var(--ink);cursor:pointer}
+  .hintline{font-size:11.5px;color:var(--ink2);margin-top:6px}
+
+  /* numeric input */
+  .numin{display:flex;align-items:center;border:1.5px solid var(--line2);border-radius:11px;background:var(--paper2);padding:0 12px}
+  .numin input{border:0;background:transparent;outline:none;font-family:var(--mono);font-size:18px;font-weight:500;
+    width:100%;padding:11px 0;color:var(--ink)}
+  .numin .suf{font-family:var(--mono);font-size:12px;color:var(--ink3);white-space:nowrap}
+  input[type=number]::-webkit-inner-spin-button{opacity:.2}
+
+  /* RESULT */
+  .result{background:linear-gradient(180deg,#2E241B 0,#241B14 100%);color:var(--paper);
+    border-radius:18px;padding:22px;margin-top:16px;box-shadow:0 10px 34px rgba(42,32,24,.22)}
+  .result .rk{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+  .bigpct{font-family:var(--disp);font-weight:600;font-size:60px;line-height:.95;margin:6px 0 2px;letter-spacing:-.02em}
+  .bigpct .s{font-size:28px;color:var(--gold)}
+  .biggrams{font-family:var(--mono);font-size:15px;color:#E9DCC8}
+  .rangechips{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .chip{flex:1;min-width:92px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 11px}
+  .chip .cl{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#C9B79A}
+  .chip .cv{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:2px}
+  .chip.fast .cv{color:#F0B967} .chip.slow .cv{color:#8FC3DC}
+
+  /* graph */
+  .graph-wrap{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 12px 8px;box-shadow:var(--sh)}
+  .graph-cap{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);margin:2px 4px 8px;display:flex;justify-content:space-between}
+  svg{display:block;width:100%}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink2);margin:6px 4px 2px}
+  .legend i{display:inline-block;width:14px;height:0;border-top-width:2px;border-top-style:solid;vertical-align:middle;margin-right:5px}
+
+  /* recipe table */
+  .recipe{margin-top:16px}
+  .ri{display:flex;align-items:center;justify-content:space-between;padding:11px 2px;border-bottom:1px solid var(--line)}
+  .ri:last-child{border-bottom:0}
+  .ri .rn{display:flex;align-items:center;gap:10px;font-size:15px}
+  .ri .rn .dot{width:9px;height:9px;border-radius:50%}
+  .ri .rg{font-family:var(--mono);font-size:17px;font-weight:600}
+  .ri .rg small{color:var(--ink3);font-weight:400;font-size:12px;margin-left:3px}
+  .totline{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;color:var(--ink2);padding-top:12px;margin-top:4px;border-top:1px dashed var(--line2)}
+
+  /* steps / sensory cards */
+  .steps{margin-top:16px;display:grid;gap:10px}
+  .step{display:flex;gap:12px;background:var(--paper2);border:1px solid var(--line);border-radius:12px;padding:13px 14px}
+  .step .ic{font-size:20px;line-height:1.1;flex:none}
+  .step .sh{font-family:var(--disp);font-weight:600;font-size:15px}
+  .step .sb{font-size:13px;color:var(--ink2);margin-top:2px}
+  .step .sb b{color:var(--ink);font-weight:600}
+  .poke{background:var(--cold-bg);border-color:#C4D8E1}
+
+  /* meter */
+  .meter{margin-top:6px}
+  .meter .track{height:9px;border-radius:99px;background:linear-gradient(90deg,#9bbccb 0,#9bbccb 28%,var(--green) 40%,var(--green) 64%,var(--amber) 78%,var(--ember) 100%);position:relative}
+  .meter .mk{position:absolute;top:-5px;width:3px;height:19px;background:var(--ink);border-radius:2px;transform:translateX(-50%)}
+  .meter .lbls{display:flex;justify-content:space-between;font-size:10px;color:var(--ink3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.06em;margin-top:7px}
+
+  /* advanced disclosure */
+  details.adv{margin-top:14px;border-top:1px dashed var(--line2);padding-top:12px}
+  details.adv summary{cursor:pointer;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);list-style:none}
+  details.adv summary::-webkit-details-marker{display:none}
+  details.adv summary::before{content:"▸ ";color:var(--ember)}
+  details.adv[open] summary::before{content:"▾ "}
+
+  /* journal */
+  .jbtns{display:flex;gap:10px;margin-top:8px}
+  .btn{flex:1;border:1.5px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:12px;
+    padding:13px;font-family:var(--disp);font-weight:600;font-size:15px;cursor:pointer;text-align:center}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn:active{transform:translateY(1px)}
+  .conf{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2);
+    background:var(--paper2);border:1px solid var(--line);border-radius:99px;padding:5px 11px;margin-top:2px}
+  .conf .dot{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+  .conf.tuned .dot{background:var(--green)}
+  .jentry{border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-top:9px;background:var(--paper2)}
+  .jentry .jt{display:flex;justify-content:space-between;align-items:center}
+  .jentry .jname{font-family:var(--disp);font-weight:600;font-size:14px}
+  .jentry .jmeta{font-family:var(--mono);font-size:11px;color:var(--ink2);margin-top:4px}
+  .jentry .out{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:3px 8px;border-radius:99px}
+  .out.perfect{background:#E3EDD3;color:#46611f} .out.over{background:var(--ember-bg);color:var(--ember-d)} .out.under{background:var(--cold-bg);color:var(--cold-d)}
+  .jentry .jact{display:flex;gap:14px;margin-top:9px}
+  .jentry .jact button{border:0;background:transparent;font-family:var(--mono);font-size:11px;color:var(--ember-d);cursor:pointer;padding:0;text-decoration:underline}
+  .empty{font-size:12.5px;color:var(--ink3);text-align:center;padding:14px;font-style:italic}
+
+  /* modal */
+  .modal{position:fixed;inset:0;background:rgba(42,32,24,.42);display:none;align-items:flex-end;justify-content:center;z-index:50;padding:0}
+  .modal.show{display:flex}
+  .sheet{background:var(--card);width:100%;max-width:680px;border-radius:18px 18px 0 0;padding:20px 18px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.2)}
+  .sheet h3{font-family:var(--disp);font-size:20px;margin:0 0 4px}
+  .sheet p{font-size:13px;color:var(--ink2);margin:0 0 14px}
+  .outsel{display:flex;gap:8px;margin:10px 0 16px}
+  .outsel button{flex:1;border:1.5px solid var(--line2);background:var(--paper2);border-radius:11px;padding:11px 6px;cursor:pointer;font-size:13px;color:var(--ink)}
+  .outsel button.sel.under{border-color:var(--cold);background:var(--cold-bg)}
+  .outsel button.sel.perfect{border-color:var(--green);background:#E3EDD3}
+  .outsel button.sel.over{border-color:var(--ember);background:var(--ember-bg)}
+  .outsel .oe{font-size:19px;display:block;margin-bottom:3px}
+
+  .footnote{font-size:11.5px;color:var(--ink3);line-height:1.6;margin-top:22px}
+  .footnote b{color:var(--ink2)}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);
+    font-size:13px;padding:11px 18px;border-radius:99px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .offline-dot{display:none;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--ink3)}
+  .offline-dot.show{display:inline-flex}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+  :focus-visible{outline:2.5px solid var(--ember);outline-offset:2px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="head">
+    <div>
+      <div class="kicker">🍕 Sourdough · Caputo 00 · by Omar</div>
+      <h1>The <em>openable</em> ball</h1>
+    </div>
+    <div class="unit-toggle" role="group" aria-label="Temperature units">
+      <button id="uF" class="on">°F</button><button id="uC">°C</button>
+    </div>
+  </div>
+  <p class="sub">Built around one thing your starter tells you: how fast it doubles. Give it that and your schedule, and it finds the starter to weigh — then shows when the dough is ready to open, not just risen.</p>
+  <span class="offline-dot" id="offdot">● offline · still works</span>
+
+  <!-- 1 -->
+  <section class="sec">
+    <div class="sec-h"><span class="sec-n">1</span><span class="sec-t">How many, and how big?</span></div>
+    <div class="row">
+      <div class="col">
+        <span class="lab">Dough balls</span>
+        <div class="stepper">
+          <button id="ballsMinus" aria-label="fewer balls">−</button>
+          <span class="val" id="ballsVal">6</span>
+          <button id="ballsPlus" aria-label="more balls">+</button>
+        </div>
+      </div>
+      <div class="col">
+        <span class="lab">Weight each</span>
+        <div class="wpills" id="wpills">
+          <div class="wp" data-w="230"><div class="wn">230</div><div class="wl">thin</div></div>
+          <div class="wp" data-w="250"><div class="wn">250</div><div class="wl">classic</div></div>
+          <div class="wp on" data-w="270"><div class="wn">270</div><div class="wl">generous</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section class="sec">
+    <div class="sec-h"><span class="sec-n">2</span><span class="sec-t">Where's it baking?</span></div>
+    <p class="sec-note">The oven sets your water. A fast, blazing bake keeps the dough drier; a slow home bake dries it out, so it needs more water to start.</p>
+    <div class="seg" id="ovenSeg">
+      <button class="pill on" data-oven="gozney" data-hyd="64">
+        <div class="pt"><span class="em">🔥</span>Gozney Dome</div>
+        <div class="pd">~800°F · 60–90 sec · snaps 64%</div>
+      </button>
+      <button class="pill cold" data-oven="home" data-hyd="67">
+        <div class="pt"><span class="em">🏠</span>Home steel 550°F</div>
+        <div class="pd">5–8 min · drier bake · snaps 67%</div>
+      </button>
+    </div>
+    <div class="slider" style="margin-top:16px">
+      <div class="top"><span class="lab" style="margin:0">Hydration</span><span class="v" id="hydV">64<small>%</small></span></div>
+      <input type="range" id="hyd" min="58" max="70" step="0.5" value="64">
+      <div class="hintline" id="hydHint">Snapped to your oven. Drag to override — Caputo 00 goes slack past ~68%.</div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section class="sec">
+    <div class="sec-h"><span class="sec-n">3</span><span class="sec-t">Your starter, on the day</span></div>
+    <p class="sec-note">Feed it, mark the jar, time the rise to double at your counter. If you measured <i>today</i>, enter that — the answer gets sharp. If not, your usual range gives a best guess.</p>
+
+    <div class="slider">
+      <div class="top">
+        <span class="lab" style="margin:0">Today it doubled in</span>
+        <span class="v" id="todayV">—<small> not measured</small></span>
+      </div>
+      <input type="range" id="today" min="2" max="12" step="0.5" value="0">
+      <div class="hintline">Slide to set today's measured doubling time, or leave at “—” to use your range below.</div>
+    </div>
+
+    <div class="row" style="margin-top:14px">
+      <div class="col">
+        <span class="lab">Usually as fast as</span>
+        <div class="numin"><input type="number" id="fast" value="4" step="0.5" min="1"><span class="suf">hours</span></div>
+      </div>
+      <div class="col">
+        <span class="lab">…and as slow as</span>
+        <div class="numin"><input type="number" id="slow" value="8" step="0.5" min="1"><span class="suf">hours</span></div>
+      </div>
+    </div>
+    <div class="hintline">Assumes a 100%-hydration starter (equal flour & water). This 2× spread is why the clock can't pin the moment — so the app leans on the look & feel of the dough.</div>
+  </section>
+
+  <!-- 4 -->
+  <section class="sec">
+    <div class="sec-h"><span class="sec-n">4</span><span class="sec-t">The slow build</span></div>
+    <p class="sec-note">A short warm rise to wake it, then the long cold for flavour. Divide &amp; ball before the fridge.</p>
+
+    <div class="row">
+      <div class="col">
+        <span class="lab">🔥 Counter temp</span>
+        <div class="numin"><input type="number" id="roomT" value="75" step="1"><span class="suf" id="roomTu">°F</span></div>
+      </div>
+      <div class="col">
+        <span class="lab">🔥 Counter hours</span>
+        <div class="numin"><input type="number" id="roomH" value="4" step="0.5" min="0"><span class="suf">h</span></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <div class="col">
+        <span class="lab">❄️ Fridge temp</span>
+        <div class="numin"><input type="number" id="fridgeT" value="37" step="1"><span class="suf" id="fridgeTu">°F</span></div>
+      </div>
+      <div class="col">
+        <span class="lab">❄️ Fridge hours</span>
+        <div class="numin"><input type="number" id="fridgeH" value="24" step="1" min="0"><span class="suf">h</span></div>
+      </div>
+    </div>
+    <div class="hintline" id="schedHint"></div>
+  </section>
+
+  <!-- RESULT -->
+  <div class="result">
+    <div class="rk">Weigh this much starter</div>
+    <div class="bigpct"><span id="pMean">9.5</span><span class="s">%</span></div>
+    <div class="biggrams"><span id="pGrams">88</span> g ripe starter · into <span id="flourG">928</span> g flour</div>
+    <div class="rangechips">
+      <div class="chip slow"><div class="cl">if it's sluggish</div><div class="cv" id="pSlow">12.4%</div></div>
+      <div class="chip"><div class="cl">best guess</div><div class="cv" id="pMid">9.5%</div></div>
+      <div class="chip fast"><div class="cl">if it's lively</div><div class="cv" id="pFast">6.5%</div></div>
+    </div>
+  </div>
+
+  <!-- GRAPH -->
+  <div class="graph-wrap">
+    <div class="graph-cap"><span>Ready window — when the ball is openable</span><span id="capWin"></span></div>
+    <div id="graph"></div>
+    <div class="legend">
+      <span><i style="border-color:var(--ember)"></i>lively day</span>
+      <span><i style="border-color:var(--ink)"></i>typical</span>
+      <span><i style="border-color:var(--cold)"></i>sluggish day</span>
+    </div>
+  </div>
+
+  <!-- RECIPE -->
+  <section class="sec recipe">
+    <div class="sec-h"><span class="sec-n">→</span><span class="sec-t">Weigh out</span></div>
+    <div class="ri"><div class="rn"><span class="dot" style="background:#C9A876"></span>Caputo 00 flour</div><div class="rg"><span id="rFlour">928</span><small>g</small></div></div>
+    <div class="ri"><div class="rn"><span class="dot" style="background:var(--cold)"></span>Water</div><div class="rg"><span id="rWater">578</span><small>g</small></div></div>
+    <div class="ri"><div class="rn"><span class="dot" style="background:var(--gold)"></span>Ripe starter</div><div class="rg"><span id="rStarter">88</span><small>g</small></div></div>
+    <div class="ri"><div class="rn"><span class="dot" style="background:#8C7C68"></span>Sea salt <span style="color:var(--ink3);font-size:12px">2.8%</span></div><div class="rg"><span id="rSalt">26</span><small>g</small></div></div>
+    <div class="totline"><span>final hydration <b id="rHyd" style="color:var(--ink)">64%</b></span><span>total dough <b id="rTotal" style="color:var(--ink)">1620</b> g</span></div>
+  </section>
+
+  <!-- STEPS -->
+  <div class="steps">
+    <div class="step">
+      <span class="ic">🌀</span>
+      <div><div class="sh">Spiral mix — don't overdo it</div>
+        <div class="sb">Everything in together: flour, water, ripe starter, then salt. No autolyse, no folds. Spiral runs warm, so aim for a <b>dough temp near 76°F</b> — start with water at about <b id="waterT">72°F</b>. Stop at a smooth, just-windowpane dough; sourdough develops fast and a spiral can blow past it.</div></div>
+    </div>
+    <div class="step">
+      <span class="ic">🔴</span>
+      <div><div class="sh">Short rise, then ball &amp; chill</div>
+        <div class="sb"><b id="stepRoom">4 h</b> on the counter, then divide, ball tight, oil, seal, and into the fridge for <b id="stepFridge">24 h</b>. The cold is where the flavour comes from.</div></div>
+    </div>
+    <div class="step poke">
+      <span class="ic">👉</span>
+      <div><div class="sh">Temper &amp; the finger test — this is your real timer</div>
+        <div class="sb">Pull the balls <b>1–2 hours before baking</b> (far longer than bread's 20 min — cold dough tears when you open it thin). Ready when a floured fingertip leaves a <b>slow-filling dent</b>. Springs right back → give it more time. Stays put and slack → you're at the edge, bake now.</div></div>
+    </div>
+  </div>
+
+  <!-- CALIBRATION / JOURNAL -->
+  <section class="sec">
+    <div class="sec-h"><span class="sec-n">★</span><span class="sec-t">Dial it to your kitchen</span></div>
+    <p class="sec-note">This is a best guess until your own bakes teach it. Save a bake, tell it how the dough came out, and the next suggestion shifts toward what actually works for you.</p>
+    <span class="conf" id="conf"><span class="dot"></span><span id="confTxt">Best guess — no bakes logged yet</span></span>
+    <div class="jbtns">
+      <button class="btn" id="saveBtn">✦ Save this bake</button>
+      <button class="btn ghost" id="exportBtn">↑ Export</button>
+    </div>
+    <div id="jlist"></div>
+    <details class="adv">
+      <summary>Calibration internals</summary>
+      <div style="margin-top:12px">
+        <div class="hintline" style="margin:0 0 8px">Pizza is pulled before the dough fully peaks — that's the “before bread” offset. Lower it for a younger, springier ball; raise it for a more open, fermented one. Your saved “perfect” bakes override this automatically.</div>
+        <div class="slider">
+          <div class="top"><span class="lab" style="margin:0">Pulled before bread peak</span><span class="v" id="offV">1.50<small> doublings</small></span></div>
+          <input type="range" id="offset" min="0.6" max="2.4" step="0.05" value="1.5">
+        </div>
+        <div class="hintline" id="rInfo"></div>
+      </div>
+    </details>
+  </section>
+
+  <p class="footnote">
+    <b>How it reasons.</b> Each phase of your schedule delivers a number of starter “doublings” — fast at the counter, roughly 5× slower at 37°F. The dough is ready at a fixed maturity, so more starter needs fewer doublings: that's the whole solve. Your bread (20% starter, pulled at peak) sets the baseline; pizza lands a notch earlier so there's gluten left to stretch. The three lines are your starter's good-day / typical / slow-day moods — the gap between them is the app being honest that it's guessing, and it tightens every time you log a bake. It assumes Caputo 00 and a 100% starter, and past ~48 h the cold turns tangy and the dough gets fragile. Watch the ball, not the clock — that's what the finger test is for.
+  </p>
+</div>
+
+<!-- save modal -->
+<div class="modal" id="modal">
+  <div class="sheet">
+    <h3>How did this dough come out?</h3>
+    <p>Tell it the truth about the ball when you opened it — that's what teaches it.</p>
+    <span class="lab">Name (optional)</span>
+    <div class="numin" style="margin-bottom:14px"><input type="text" id="jName" placeholder="Friday margheritas" style="font-family:var(--body);font-size:15px"></div>
+    <span class="lab">Starter you actually used</span>
+    <div class="numin" style="margin-bottom:6px"><input type="number" id="jUsed" step="0.5"><span class="suf">%</span></div>
+    <span class="lab" style="margin-top:8px">The ball was…</span>
+    <div class="outsel" id="outsel">
+      <button data-out="under" class="under"><span class="oe">🥶</span>tight / under — sprang back, hard to open</button>
+      <button data-out="perfect" class="perfect"><span class="oe">🤌</span>perfect — opened like a dream</button>
+      <button data-out="over" class="over"><span class="oe">🫠</span>slack / over — sticky, tore, no rim</button>
+    </div>
+    <div class="jbtns">
+      <button class="btn ghost" id="cancelBtn">Cancel</button>
+      <button class="btn" id="confirmBtn">Save bake</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ---------------- model ---------------- */
+const Q10 = 2.5;
+const F2C = f => (f - 32) * 5/9;
+const num = (v, fb=0) => { const n = parseFloat(v); return Number.isFinite(n) ? n : fb; };
+
+// doublings a phase delivers, scaled from the temp the starter was timed at (the counter)
+function phaseDoublings(hours, tempF, tau, measF){
+  if (tau <= 0) return 0;
+  return (hours / tau) * Math.pow(Q10, (F2C(tempF) - F2C(measF)) / 10);
+}
+function scheduleD(tau, s){
+  return phaseDoublings(s.roomH, s.roomT, tau, s.measF)
+       + phaseDoublings(s.fridgeH, s.fridgeT, tau, s.measF);
+}
+// readiness constant, derived from the bread anchor: 20% pulled at peak, minus the pizza offset
+function pizzaR(offset, measF){
+  const breadTau = 5.66;
+  const bread = {roomH:8, roomT:75, fridgeH:13, fridgeT:37, measF: measF};
+  const Rbread = 0.20 * Math.pow(2, scheduleD(breadTau, bread));
+  return Rbread / Math.pow(2, offset);
+}
+function recipe(totalMass, hyd, salt, p, starterHyd){
+  const a = 1/(1+starterHyd), b = starterHyd/(1+starterHyd);
+  const F = totalMass / (1 + salt + hyd + p*a*(1+hyd));
+  const S = p*F, sf = S*a, sw = S*b;
+  const tF = F + sf, tW = hyd*tF;
+  return { flour:F, water:tW - sw, starter:S, salt:salt*F, totalF:tF, finalHyd: tW/tF };
+}
+// time (h from mix) at which a given tau reaches Dready
+function readyTime(tau, Dready, s){
+  let d=0, t=0; const dt=0.04, cap=(s.roomH+s.fridgeH)*3 + 10;
+  while(t < cap){
+    const inRoom = t < s.roomH;
+    d += phaseDoublings(dt, inRoom ? s.roomT : s.fridgeT, tau, s.measF);
+    t += dt;
+    if(d >= Dready) return t;
+  }
+  return Infinity;
+}
+
+/* ---------------- state ---------------- */
+const S = {
+  balls:6, ballW:270, oven:'gozney', hyd:64,
+  today:0, fast:4, slow:8,
+  roomT:75, roomH:4, fridgeT:37, fridgeH:24,
+  units:'F', offset:1.5,
+  journal: load()
+};
+function load(){ try { return JSON.parse(localStorage.getItem('omar_sd_pizza')||'[]'); } catch(e){ return []; } }
+function save(){ try { localStorage.setItem('omar_sd_pizza', JSON.stringify(S.journal)); } catch(e){} }
+
+const $ = id => document.getElementById(id);
+
+/* effective readiness R: perfect anchors override the offset-derived default */
+function effectiveR(){
+  const measF = S.roomT;
+  const perfects = S.journal.filter(j => j.outcome === 'perfect' && Number.isFinite(j.R));
+  const nudged = S.journal.filter(j => Number.isFinite(j.R) && j.outcome !== 'perfect');
+  let Rs = perfects.map(j => j.R);
+  if(!Rs.length && nudged.length){
+    // use over/under anchors with a gentle nudge if no perfects yet
+    Rs = nudged.map(j => j.outcome === 'over' ? j.R/Math.pow(2,0.3) : j.R*Math.pow(2,0.3));
+  }
+  if(Rs.length){ return { R: Rs.reduce((a,b)=>a+b,0)/Rs.length, tuned:true, n:S.journal.length }; }
+  return { R: pizzaR(S.offset, measF), tuned:false, n:0 };
+}
+
+/* ---------------- compute + render ---------------- */
+function compute(){
+  const s = { roomT:S.roomT, roomH:S.roomH, fridgeT:S.fridgeT, fridgeH:S.fridgeH, measF:S.roomT };
+  const meanTau = S.today>0 ? S.today : Math.sqrt(S.fast*S.slow);
+  const fastTau = S.today>0 ? S.today*0.9 : Math.min(S.fast,S.slow);
+  const slowTau = S.today>0 ? S.today*1.1 : Math.max(S.fast,S.slow);
+  const er = effectiveR();
+  const R = er.R;
+  const pOf = tau => Math.max(0.005, R / Math.pow(2, scheduleD(tau, s)));
+  const pMean = pOf(meanTau), pFast = pOf(fastTau), pSlow = pOf(slowTau);
+  const totalMass = S.balls * S.ballW;
+  const r = recipe(totalMass, S.hyd/100, 0.028, pMean, 1.0);
+  const Dready = Math.log2(R / pMean);
+  return { s, meanTau, fastTau, slowTau, pMean, pFast, pSlow, r, Dready, R, er, totalMass };
+}
+
+function render(){
+  const m = compute();
+  // result
+  $('pMean').textContent = (m.pMean*100).toFixed(1);
+  $('pGrams').textContent = Math.round(m.r.starter);
+  $('flourG').textContent = Math.round(m.r.flour);
+  $('pMid').textContent  = (m.pMean*100).toFixed(1)+'%';
+  $('pFast').textContent = (m.pFast*100).toFixed(1)+'%';
+  $('pSlow').textContent = (m.pSlow*100).toFixed(1)+'%';
+  // recipe
+  $('rFlour').textContent = Math.round(m.r.flour);
+  $('rWater').textContent = Math.round(m.r.water);
+  $('rStarter').textContent = Math.round(m.r.starter);
+  $('rSalt').textContent = Math.round(m.r.salt);
+  $('rHyd').textContent = Math.round(m.r.finalHyd*100)+'%';
+  $('rTotal').textContent = Math.round(m.totalMass);
+  // water temp (3-factor DDT, spiral friction ~6°F, flour≈room)
+  const ddt = 76, friction = 6;
+  const wT = Math.round(3*ddt - 2*S.roomT - friction);
+  $('waterT').textContent = (S.units==='F' ? wT+'°F' : Math.round(F2C(wT))+'°C');
+  // steps echo
+  $('stepRoom').textContent = fmtH(S.roomH);
+  $('stepFridge').textContent = fmtH(S.fridgeH);
+  // schedule hint
+  const total = S.roomH + S.fridgeH;
+  let warn = '';
+  if(S.fridgeH > 48) warn = ' \u26A0\uFE0E past ~48 h the cold turns tangy and the dough gets fragile \u2014 the real sourdough ceiling.';
+  $('schedHint').textContent = 'Total time ' + fmtH(total) + ' from mix to bake.' + warn;
+  // confidence
+  const conf = $('conf'), ct = $('confTxt');
+  if(m.er.tuned){ conf.classList.add('tuned'); ct.textContent = 'Tuned to ' + m.er.n + ' of your bake' + (m.er.n>1?'s':''); }
+  else { conf.classList.remove('tuned'); ct.textContent = 'Best guess — ' + (S.journal.length? 'log a “perfect” bake to lock it in' : 'no bakes logged yet'); }
+  // internals
+  $('rInfo').textContent = 'Readiness R = ' + m.R.toFixed(3) + (m.er.tuned?' (from your bakes)':' (from bread anchor − offset)') +
+    ' · this batch lands ready at ' + fmtReady(readyTime(m.meanTau, m.Dready, m.s));
+  drawGraph(m);
+}
+
+function fmtH(h){ if(h%1===0) return h+' h'; return h.toFixed(1)+' h'; }
+function fmtReady(t){ return t===Infinity ? 'beyond the schedule' : (t<1? Math.round(t*60)+' min' : t.toFixed(1)+' h'); }
+
+/* ---------------- graph ---------------- */
+function drawGraph(m){
+  const W=680, H=240, padL=20, padR=14, padT=16, padB=34;
+  const total = m.s.roomH + m.s.fridgeH;
+  const span = Math.max(total*1.15, readyTime(m.slowTau, m.Dready, m.s)*1.06);
+  const X = t => padL + (Math.min(t,span)/span)*(W-padL-padR);
+  // y = fermentation progress = 2^cumD, ready line at 2^Dready
+  const Dr = m.Dready;
+  const yMax = Math.pow(2, Dr*1.35);
+  const Y = d => H-padB - (Math.min(Math.pow(2,d), yMax)/yMax)*(H-padT-padB);
+
+  function curve(tau){
+    let pts=[], d=0, t=0; const dt=span/260;
+    pts.push([X(0),Y(0)]);
+    while(t<=span){
+      const inRoom = t < m.s.roomH;
+      d += phaseDoublings(dt, inRoom?m.s.roomT:m.s.fridgeT, tau, m.s.measF);
+      t += dt; pts.push([X(t),Y(d)]);
+    }
+    return pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  }
+  const tRoom = X(m.s.roomH);
+  const rdyMean = readyTime(m.meanTau,Dr,m.s), rdyFast=readyTime(m.fastTau,Dr,m.s), rdySlow=readyTime(m.slowTau,Dr,m.s);
+  const yReady = Y(Dr);
+
+  let svg = '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Fermentation progress over time with ready window">';
+  // phase bands
+  svg += '<rect x="'+padL+'" y="'+padT+'" width="'+(tRoom-padL)+'" height="'+(H-padT-padB)+'" fill="#FBE3D4" opacity="0.5"/>';
+  svg += '<rect x="'+tRoom+'" y="'+padT+'" width="'+(W-padR-tRoom)+'" height="'+(H-padT-padB)+'" fill="#DDE9EE" opacity="0.6"/>';
+  svg += '<text x="'+((padL+tRoom)/2)+'" y="'+(H-12)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#A83D1C">🔥 counter '+fmtH(m.s.roomH)+'</text>';
+  svg += '<text x="'+((tRoom+W-padR)/2)+'" y="'+(H-12)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="10" fill="#36617A">❄️ fridge</text>';
+  // ready window shading
+  if(rdyFast!==Infinity){
+    const x0=X(rdyFast), x1=(rdySlow===Infinity?W-padR:X(rdySlow));
+    svg += '<rect x="'+x0+'" y="'+padT+'" width="'+(x1-x0)+'" height="'+(H-padT-padB)+'" fill="#E0A23C" opacity="0.14"/>';
+  }
+  // ready line
+  svg += '<line x1="'+padL+'" y1="'+yReady+'" x2="'+(W-padR)+'" y2="'+yReady+'" stroke="#2A2018" stroke-width="1" stroke-dasharray="2 4" opacity="0.6"/>';
+  svg += '<text x="'+(W-padR)+'" y="'+(yReady-6)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9.5" fill="#2A2018" opacity="0.7">openable</text>';
+  // curves
+  svg += '<path d="'+curve(m.slowTau)+'" fill="none" stroke="#4E84A0" stroke-width="2"/>';
+  svg += '<path d="'+curve(m.fastTau)+'" fill="none" stroke="#D8552A" stroke-width="2"/>';
+  svg += '<path d="'+curve(m.meanTau)+'" fill="none" stroke="#2A2018" stroke-width="2.6"/>';
+  // ready markers
+  function mark(t,color){ if(t===Infinity) return ''; const x=X(t);
+    return '<line x1="'+x+'" y1="'+yReady+'" x2="'+x+'" y2="'+(H-padB)+'" stroke="'+color+'" stroke-width="1" opacity="0.5"/>'+
+           '<circle cx="'+x+'" cy="'+yReady+'" r="3.5" fill="'+color+'"/>'; }
+  svg += mark(rdyFast,'#D8552A') + mark(rdySlow,'#4E84A0') + mark(rdyMean,'#2A2018');
+  svg += '</svg>';
+  $('graph').innerHTML = svg;
+
+  const cap = $('capWin');
+  if(rdyFast===Infinity){ cap.textContent='needs more starter or time'; }
+  else { cap.textContent = 'check from ' + fmtReady(rdyFast) + (rdySlow===Infinity?' →':' to '+fmtReady(rdySlow)); }
+}
+
+/* ---------------- units ---------------- */
+function setUnits(u){
+  if(u===S.units) return;
+  const conv = (id, toC)=>{ const el=$(id); el.value = toC ? Math.round(F2C(num(el.value))) : Math.round(num(el.value)*9/5+32); };
+  ['roomT','fridgeT'].forEach(id=>conv(id, u==='C'));
+  S.units=u;
+  $('uF').classList.toggle('on',u==='F'); $('uC').classList.toggle('on',u==='C');
+  $('roomTu').textContent = u==='F'?'°F':'°C'; $('fridgeTu').textContent = u==='F'?'°F':'°C';
+  syncFromInputs(); render();
+}
+// store temps internally in °F regardless of display
+function tempF(id){ return S.units==='F' ? num($(id).value) : num($(id).value)*9/5+32; }
+
+/* ---------------- input wiring ---------------- */
+function syncFromInputs(){
+  S.fast = num($('fast').value,4); S.slow = num($('slow').value,8);
+  S.roomT = tempF('roomT'); S.roomH = Math.max(0,num($('roomH').value,4));
+  S.fridgeT = tempF('fridgeT'); S.fridgeH = Math.max(0,num($('fridgeH').value,24));
+}
+
+$('ballsMinus').onclick = ()=>{ S.balls=Math.max(1,S.balls-1); $('ballsVal').textContent=S.balls; render(); };
+$('ballsPlus').onclick  = ()=>{ S.balls=Math.min(24,S.balls+1); $('ballsVal').textContent=S.balls; render(); };
+
+document.querySelectorAll('#wpills .wp').forEach(el=>el.onclick=()=>{
+  document.querySelectorAll('#wpills .wp').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on'); S.ballW=+el.dataset.w; render();
+});
+
+document.querySelectorAll('#ovenSeg .pill').forEach(el=>el.onclick=()=>{
+  document.querySelectorAll('#ovenSeg .pill').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on'); S.oven=el.dataset.oven;
+  S.hyd=+el.dataset.hyd; $('hyd').value=S.hyd; $('hydV').innerHTML=S.hyd+'<small>%</small>';
+  $('hydHint').textContent = S.oven==='home'
+    ? 'Snapped to 67% for the slow home bake. This is the number to nudge up when you add King Arthur bread flour (→ 70%).'
+    : 'Snapped to your oven. Drag to override — Caputo 00 goes slack past ~68%.';
+  render();
+});
+
+$('hyd').oninput = e=>{ S.hyd=+e.target.value; $('hydV').innerHTML=S.hyd+'<small>%</small>'; render(); };
+
+$('today').oninput = e=>{
+  const v=+e.target.value; S.today=v;
+  $('todayV').innerHTML = v>0 ? v.toFixed(1)+'<small> h</small>' : '—<small> not measured</small>';
+  render();
+};
+['fast','slow','roomT','roomH','fridgeT','fridgeH'].forEach(id=>{
+  $(id).oninput = ()=>{ syncFromInputs(); render(); };
+});
+
+$('uF').onclick=()=>setUnits('F'); $('uC').onclick=()=>setUnits('C');
+
+$('offset').oninput = e=>{ S.offset=+e.target.value; $('offV').innerHTML=S.offset.toFixed(2)+'<small> doublings</small>'; render(); };
+
+/* ---------------- journal ---------------- */
+let pendingOutcome='perfect';
+$('saveBtn').onclick = ()=>{
+  const m=compute();
+  $('jUsed').value=(m.pMean*100).toFixed(1);
+  $('jName').value='';
+  pendingOutcome='perfect';
+  document.querySelectorAll('#outsel button').forEach(b=>b.classList.toggle('sel',b.dataset.out==='perfect'));
+  $('modal').classList.add('show');
+};
+$('cancelBtn').onclick=()=>$('modal').classList.remove('show');
+$('modal').onclick=e=>{ if(e.target===$('modal')) $('modal').classList.remove('show'); };
+document.querySelectorAll('#outsel button').forEach(b=>b.onclick=()=>{
+  pendingOutcome=b.dataset.out;
+  document.querySelectorAll('#outsel button').forEach(x=>x.classList.remove('sel'));
+  b.classList.add('sel');
+});
+$('confirmBtn').onclick = ()=>{
+  const m=compute();
+  const used = num($('jUsed').value, m.pMean*100)/100;
+  const s = m.s;
+  // R implied by this bake = used% × 2^(its schedule doublings at typical tau)
+  const Dused = scheduleD(m.meanTau, s);
+  const R = used * Math.pow(2, Dused);
+  S.journal.unshift({
+    id:Date.now(), name:$('jName').value.trim()||('Bake '+(S.journal.length+1)),
+    outcome:pendingOutcome, usedPct:+(used*100).toFixed(1), R:+R.toFixed(4),
+    hyd:S.hyd, oven:S.oven, roomH:S.roomH, fridgeH:S.fridgeH, date:new Date().toISOString().slice(0,10)
+  });
+  save(); $('modal').classList.remove('show'); renderJournal(); render();
+  toast(pendingOutcome==='perfect'?'Locked in — future guesses use this':'Saved — the guess just shifted');
+};
+function renderJournal(){
+  const l=$('jlist');
+  if(!S.journal.length){ l.innerHTML='<div class="empty">No bakes yet. Your first one becomes the anchor everything else tunes to.</div>'; return; }
+  l.innerHTML = S.journal.map(j=>(
+    '<div class="jentry"><div class="jt"><span class="jname">'+esc(j.name)+'</span>'+
+    '<span class="out '+j.outcome+'">'+j.outcome+'</span></div>'+
+    '<div class="jmeta">'+j.usedPct+'% starter · '+j.hyd+'% hyd · '+(j.oven==='home'?'home steel':'Gozney')+' · '+fmtH(j.roomH)+'+'+fmtH(j.fridgeH)+' · '+j.date+'</div>'+
+    '<div class="jact"><button data-load="'+j.id+'">load settings</button><button data-del="'+j.id+'">delete</button></div></div>'
+  )).join('');
+  l.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>{ S.journal=S.journal.filter(x=>x.id!=b.dataset.del); save(); renderJournal(); render(); });
+  l.querySelectorAll('[data-load]').forEach(b=>b.onclick=()=>{
+    const j=S.journal.find(x=>x.id==b.dataset.load); if(!j) return;
+    S.hyd=j.hyd; $('hyd').value=j.hyd; $('hydV').innerHTML=j.hyd+'<small>%</small>';
+    $('roomH').value=j.roomH; $('fridgeH').value=j.fridgeH; syncFromInputs(); render(); toast('Loaded “'+j.name+'”');
+  });
+}
+$('exportBtn').onclick = ()=>{
+  if(!S.journal.length){ toast('Nothing to export yet'); return; }
+  const txt = S.journal.map(j=>`${j.date}  ${j.name}  ${j.usedPct}% starter  ${j.hyd}% hyd  ${j.oven}  ${j.roomH}h+${j.fridgeH}h  → ${j.outcome}`).join('\n');
+  if(navigator.clipboard){ navigator.clipboard.writeText(txt).then(()=>toast('Copied to clipboard')); }
+  else toast('Copy not supported here');
+};
+
+function esc(s){ return (s+'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+let tt;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2200); }
+
+/* ---------------- offline + boot ---------------- */
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
+function offFlag(){ $('offdot').classList.toggle('show', !navigator.onLine); }
+window.addEventListener('online',offFlag); window.addEventListener('offline',offFlag); offFlag();
+
+syncFromInputs(); renderJournal(); render();
+</script>
+</body>
+</html>
