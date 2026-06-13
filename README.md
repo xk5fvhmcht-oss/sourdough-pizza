@@ -24,7 +24,7 @@ D         =  Σ phases of  (t/τ) · Q10^((T − T_counter)/10)
 ### Honest limits
 - Assumes exponential growth; past ~48 h the cold turns tangy and the dough gets fragile (sourdough's real ceiling, lower than commercial yeast).
 - Assumes Caputo 00 and a 100% (equal flour/water) starter.
-- Treats the fridge as instantly cold and ignores small salt/hydration effects on rate. The journal anchor absorbs most of this.
+- Models the fridge cool-down with Newton's law of cooling (a ~2 h time constant for a balled dough), so fermentation slows over the first few hours rather than stopping the instant the dough goes in. The cooling constant is an estimate; it ignores ball size, spacing, and fridge airflow. Small salt/hydration effects on rate are also ignored, and the journal anchor absorbs most of the slack.
 
 ## What it gives you
 - Starter **%** and **grams**, plus the lively/typical/sluggish range

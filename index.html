@@ -461,18 +461,31 @@
 "use strict";
 /* ---------------- model ---------------- */
 const Q10 = 2.5;
+const TAU_COOL = 2.0; // hours: Newton-cooling time constant for a balled dough entering the fridge
 const F2C = f => (f - 32) * 5/9;
 const num = (v, fb=0) => { const n = parseFloat(v); return Number.isFinite(n) ? n : fb; };
 
-// doublings a phase delivers, scaled from the temp the starter was timed at (the counter)
-function phaseDoublings(hours, tempF, tau, measF){
-  if (tau <= 0) return 0;
-  return (hours / tau) * Math.pow(Q10, (F2C(tempF) - F2C(measF)) / 10);
+// Instantaneous dough temperature (°F) at elapsed time t (hours from mixing).
+// Warm phase: at room temp. Fridge phase: cools smoothly from dough temp toward fridge temp,
+// so fermentation slows over hours rather than stopping the instant it goes in the fridge.
+function tempAt(t, s){
+  if(t <= s.roomH) return s.roomT;
+  const tf = t - s.roomH;
+  return s.fridgeT + (s.roomT - s.fridgeT) * Math.exp(-tf / TAU_COOL);
 }
-function scheduleD(tau, s){
-  return phaseDoublings(s.roomH, s.roomT, tau, s.measF)
-       + phaseDoublings(s.fridgeH, s.fridgeT, tau, s.measF);
+// Instantaneous fermentation rate (doublings/hour) for a starter that doubles every `tau` at measF.
+function rateAt(t, s, tau){
+  if(tau <= 0) return 0;
+  return (1/tau) * Math.pow(Q10, (F2C(tempAt(t,s)) - F2C(s.measF)) / 10);
 }
+// Total doublings from mixing (0) to elapsed time T, integrating the cooling curve (midpoint rule).
+function doublingsUpTo(T, s, tau){
+  if(tau <= 0 || T <= 0) return 0;
+  const dt = 0.02; let d = 0, t = 0;
+  while(t < T){ const step = Math.min(dt, T - t); d += rateAt(t + step/2, s, tau) * step; t += step; }
+  return d;
+}
+function scheduleD(tau, s){ return doublingsUpTo(s.roomH + s.fridgeH, s, tau); }
 // readiness constant, derived from the bread anchor: 20% pulled at peak, minus the pizza offset
 function pizzaR(offset, measF){
   const breadTau = 5.66;
@@ -487,15 +500,11 @@ function recipe(totalMass, hyd, salt, p, starterHyd){
   const tF = F + sf, tW = hyd*tF;
   return { flour:F, water:tW - sw, starter:S, salt:salt*F, totalF:tF, finalHyd: tW/tF };
 }
-// time (h from mix) at which a given tau reaches Dready
+// time (h from mix) at which a given tau reaches Dready, integrating the cooling curve
 function readyTime(tau, Dready, s){
-  let d=0, t=0; const dt=0.04, cap=(s.roomH+s.fridgeH)*3 + 10;
-  while(t < cap){
-    const inRoom = t < s.roomH;
-    d += phaseDoublings(dt, inRoom ? s.roomT : s.fridgeT, tau, s.measF);
-    t += dt;
-    if(d >= Dready) return t;
-  }
+  if(tau <= 0) return Infinity;
+  const dt=0.04, cap=(s.roomH+s.fridgeH)*3 + 24; let d=0, t=0;
+  while(t < cap){ d += rateAt(t + dt/2, s, tau) * dt; t += dt; if(d >= Dready) return t; }
   return Infinity;
 }
 
@@ -661,89 +670,86 @@ function nudge(d){
 
 /* ---------------- graph ---------------- */
 function drawGraph(m){
-  const W=680, H=270, padL=40, padR=16, padT=18, padB=46;
-  const total = m.s.roomH + m.s.fridgeH;
-  const rdyMean = readyTime(m.meanTau,m.Dready,m.s);
-  const rdyFast = readyTime(m.fastTau,m.Dready,m.s);
-  const rdySlow = readyTime(m.slowTau,m.Dready,m.s);
-  // x span: cover schedule and the latest ready, with headroom
+  const mobile = (window.innerWidth || 420) < 480;
+  const W = mobile?384:680, H = mobile?302:270;
+  const padL = mobile?34:40, padR = mobile?12:16, padT = mobile?30:18, padB = mobile?56:46;
+  const F = { ax: mobile?12:9, lab: mobile?12:9.5, sm: mobile?10.5:8.5, dot: mobile?12.5:9.5 };
+  const nT = mobile?4:5, SW = mobile?2.4:2, SWmean = mobile?3.2:2.6;
+
+  const s = m.s, total = s.roomH + s.fridgeH;
+  const rdyMean = readyTime(m.meanTau,m.Dready,s);
+  const rdyFast = readyTime(m.fastTau,m.Dready,s);
+  const rdySlow = readyTime(m.slowTau,m.Dready,s);
   let span = total;
   if(rdySlow!==Infinity) span = Math.max(span, rdySlow);
-  span = span*1.08;
+  span *= 1.08;
   const X = t => padL + (Math.min(t,span)/span)*(W-padL-padR);
 
-  // y = progress to openable, in %: 100% = openable line. cap at 120 (over zone above 100).
   const Dr = m.Dready, yTop=120;
   const prog = d => (Dr>0 ? (d/Dr)*100 : 0);
   const Y = p => H-padB - (Math.min(p,yTop)/yTop)*(H-padT-padB);
   const plotH = H-padT-padB;
 
+  // cooling-aware curve: integrate the instantaneous rate (bends smoothly through the fridge cool-down)
   function curve(tau){
-    let pts=[], d=0, t=0; const dt=span/300;
-    pts.push([X(0),Y(0)]);
-    while(t<=span){
-      const inRoom = t < m.s.roomH;
-      d += phaseDoublings(dt, inRoom?m.s.roomT:m.s.fridgeT, tau, m.s.measF);
-      t += dt; pts.push([X(t),Y(prog(d))]);
-    }
+    let d=0, t=0; const dt=span/300; const pts=[[X(0),Y(0)]];
+    while(t<span){ const step=Math.min(dt,span-t); d += rateAt(t+step/2, s, tau)*step; t+=step; pts.push([X(t),Y(prog(d))]); }
     return pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
   }
-  const tRoom = X(m.s.roomH);
-  const y100 = Y(100), y0 = Y(0);
+  const tRoom = X(s.roomH);
+  const coolSpanH = Math.min(3*TAU_COOL, s.fridgeH);     // ~3 time-constants ≈ mostly cooled
+  const tCoolEnd = X(s.roomH + coolSpanH);
+  const y100 = Y(100);
 
-  let svg = '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Progress to openable over time">';
-  // over-zone (100–120%)
+  let svg = '<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Progress to openable over real time">';
+  svg += '<defs><linearGradient id="coolg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#FBE3D4"/><stop offset="100%" stop-color="#DDE9EE"/></linearGradient></defs>';
+  // over zone
   svg += '<rect x="'+padL+'" y="'+padT+'" width="'+(W-padR-padL)+'" height="'+(y100-padT)+'" fill="#E07A4B" opacity="0.06"/>';
-  svg += '<text x="'+(padL+6)+'" y="'+(padT+12)+'" font-family="ui-monospace,monospace" font-size="9" fill="#A83D1C" opacity="0.8">over · too late to open</text>';
-  // phase bands (under plot)
-  svg += '<rect x="'+padL+'" y="'+padT+'" width="'+(tRoom-padL)+'" height="'+plotH+'" fill="#FBE3D4" opacity="0.55"/>';
-  svg += '<rect x="'+tRoom+'" y="'+padT+'" width="'+(W-padR-tRoom)+'" height="'+plotH+'" fill="#DDE9EE" opacity="0.6"/>';
-  // y gridlines + labels (0/50/100)
-  [0,50,100].forEach(p=>{
-    const y=Y(p);
+  svg += '<text x="'+(padL+5)+'" y="'+(padT+(mobile?13:12))+'" font-family="ui-monospace,monospace" font-size="'+F.sm+'" fill="#A83D1C" opacity="0.85">over · too late</text>';
+  // bands: warm · cooling gradient · cold
+  svg += '<rect x="'+padL+'" y="'+padT+'" width="'+(tRoom-padL)+'" height="'+plotH+'" fill="#FBE3D4" opacity="0.6"/>';
+  svg += '<rect x="'+tRoom+'" y="'+padT+'" width="'+(tCoolEnd-tRoom)+'" height="'+plotH+'" fill="url(#coolg)" opacity="0.6"/>';
+  svg += '<rect x="'+tCoolEnd+'" y="'+padT+'" width="'+(W-padR-tCoolEnd)+'" height="'+plotH+'" fill="#DDE9EE" opacity="0.6"/>';
+  // y grid + labels
+  [0,50,100].forEach(p=>{ const y=Y(p);
     svg += '<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="#D6C3A4" stroke-width="1" opacity="'+(p===100?0:0.5)+'"/>';
-    svg += '<text x="'+(padL-7)+'" y="'+(y+3)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9" fill="#9A8B79">'+p+'%</text>';
-  });
-  // ready window shading (vertical)
-  if(rdyFast!==Infinity){
-    const x0=X(rdyFast), x1=(rdySlow===Infinity?W-padR:X(rdySlow));
-    svg += '<rect x="'+x0+'" y="'+padT+'" width="'+Math.max(0,(x1-x0))+'" height="'+plotH+'" fill="#E0A23C" opacity="0.16"/>';
-  }
-  // openable line at 100%
+    svg += '<text x="'+(padL-6)+'" y="'+(y+3)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="'+F.ax+'" fill="#9A8B79">'+p+'%</text>'; });
+  // ready window shading
+  if(rdyFast!==Infinity){ const x0=X(rdyFast), x1=(rdySlow===Infinity?W-padR:X(rdySlow));
+    svg += '<rect x="'+x0+'" y="'+padT+'" width="'+Math.max(0,x1-x0)+'" height="'+plotH+'" fill="#E0A23C" opacity="0.16"/>'; }
+  // openable line
   svg += '<line x1="'+padL+'" y1="'+y100+'" x2="'+(W-padR)+'" y2="'+y100+'" stroke="#2A2018" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.75"/>';
-  svg += '<text x="'+(W-padR)+'" y="'+(y100-6)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="9.5" fill="#2A2018" opacity="0.8">openable (100%)</text>';
-  // phase divider + labels
+  svg += '<text x="'+(W-padR)+'" y="'+(y100-5)+'" text-anchor="end" font-family="ui-monospace,monospace" font-size="'+F.lab+'" fill="#2A2018" opacity="0.85">openable</text>';
+  // fridge-entry marker
   svg += '<line x1="'+tRoom+'" y1="'+padT+'" x2="'+tRoom+'" y2="'+(H-padB)+'" stroke="#C9A876" stroke-width="1" stroke-dasharray="2 3"/>';
-  svg += '<text x="'+((padL+tRoom)/2)+'" y="'+(H-padB+14)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9.5" fill="#A83D1C">🔥 counter</text>';
-  svg += '<text x="'+((tRoom+W-padR)/2)+'" y="'+(H-padB+14)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9.5" fill="#36617A">❄️ fridge</text>';
+  // band labels under axis
+  const labY = H-padB+(mobile?16:14);
+  svg += '<text x="'+((padL+tRoom)/2)+'" y="'+labY+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="'+F.lab+'" fill="#A83D1C">🔥 counter</text>';
+  if(tCoolEnd-tRoom > (mobile?44:54)) svg += '<text x="'+((tRoom+tCoolEnd)/2)+'" y="'+labY+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="'+F.sm+'" fill="#8A7A66">cooling</text>';
+  svg += '<text x="'+((tCoolEnd+W-padR)/2)+'" y="'+labY+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="'+F.lab+'" fill="#36617A">❄️ fridge</text>';
   // x ticks in wall-clock
-  const nT = 5; let lastDay=null;
-  for(let i=0;i<=nT;i++){
-    const t = span*i/nT; const x=X(t); const d=atHours(t);
-    const anchor = i===0?'start':(i===nT?'end':'middle');
-    const tx = i===0?padL:(i===nT?(W-padR):x);
+  let lastDay=null;
+  for(let i=0;i<=nT;i++){ const t=span*i/nT, x=X(t), dte=atHours(t);
+    const anchor=i===0?'start':(i===nT?'end':'middle'); const tx=i===0?padL:(i===nT?(W-padR):x);
     svg += '<line x1="'+x+'" y1="'+(H-padB)+'" x2="'+x+'" y2="'+(H-padB+4)+'" stroke="#9A8B79"/>';
-    const showDay = (d.getDay()!==lastDay); lastDay=d.getDay();
-    svg += '<text x="'+tx+'" y="'+(H-padB+26)+'" text-anchor="'+anchor+'" font-family="ui-monospace,monospace" font-size="9" fill="#6B5D4F">'+clockShort(d)+'</text>';
-    if(showDay) svg += '<text x="'+tx+'" y="'+(H-padB+37)+'" text-anchor="'+anchor+'" font-family="ui-monospace,monospace" font-size="8.5" fill="#9A8B79">'+DOW[d.getDay()]+'</text>';
+    const showDay=(dte.getDay()!==lastDay); lastDay=dte.getDay();
+    svg += '<text x="'+tx+'" y="'+(H-padB+(mobile?30:26))+'" text-anchor="'+anchor+'" font-family="ui-monospace,monospace" font-size="'+F.ax+'" fill="#6B5D4F">'+clockShort(dte)+'</text>';
+    if(showDay) svg += '<text x="'+tx+'" y="'+(H-padB+(mobile?42:37))+'" text-anchor="'+anchor+'" font-family="ui-monospace,monospace" font-size="'+F.sm+'" fill="#9A8B79">'+DOW[dte.getDay()]+'</text>';
   }
-  // axis titles
-  svg += '<text x="'+padL+'" y="'+(padT-6)+'" font-family="ui-monospace,monospace" font-size="8.5" fill="#9A8B79" letter-spacing="0.5">PROGRESS ↑</text>';
+  // progress axis title
+  svg += '<text x="'+padL+'" y="'+(padT-(mobile?8:6))+'" font-family="ui-monospace,monospace" font-size="'+F.sm+'" fill="#9A8B79" letter-spacing="0.5">PROGRESS ↑</text>';
   // curves
-  svg += '<path d="'+curve(m.slowTau)+'" fill="none" stroke="#4E84A0" stroke-width="2"/>';
-  svg += '<path d="'+curve(m.fastTau)+'" fill="none" stroke="#D8552A" stroke-width="2"/>';
-  svg += '<path d="'+curve(m.meanTau)+'" fill="none" stroke="#2A2018" stroke-width="2.6"/>';
-  // ready dots with clock labels
-  function mark(t,color,label,dy){ if(t===Infinity) return ''; const x=X(t);
-    return '<circle cx="'+x+'" cy="'+y100+'" r="4" fill="'+color+'" stroke="#FFFBF3" stroke-width="1.5"/>'+
-      '<text x="'+x+'" y="'+(y100+dy)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="8.8" fill="'+color+'">'+label+'</text>'; }
-  // stagger labels to avoid overlap: fast above, slow below, mean above-further
-  svg += mark(rdyFast,'#A83D1C', clockShort(atHours(rdyFast)), -10);
-  svg += mark(rdySlow,'#36617A', clockShort(atHours(rdySlow)), 18);
+  svg += '<path d="'+curve(m.slowTau)+'" fill="none" stroke="#4E84A0" stroke-width="'+SW+'"/>';
+  svg += '<path d="'+curve(m.fastTau)+'" fill="none" stroke="#D8552A" stroke-width="'+SW+'"/>';
+  svg += '<path d="'+curve(m.meanTau)+'" fill="none" stroke="#2A2018" stroke-width="'+SWmean+'"/>';
+  // ready dots (label all three on desktop; only the typical/bold one on mobile to avoid overlap)
+  const dot=(t,c,r)=> t===Infinity?'':'<circle cx="'+X(t)+'" cy="'+y100+'" r="'+r+'" fill="'+c+'" stroke="#FFFBF3" stroke-width="1.5"/>';
+  const lbl=(t,c,dy)=> t===Infinity?'':'<text x="'+X(t)+'" y="'+(y100+dy)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="'+F.dot+'" fill="'+c+'">'+clockShort(atHours(t))+'</text>';
+  svg += dot(rdyFast,'#A83D1C',mobile?3.5:4) + dot(rdySlow,'#4E84A0',mobile?3.5:4);
+  if(!mobile){ svg += lbl(rdyFast,'#A83D1C',-10) + lbl(rdySlow,'#36617A',18); }
   if(rdyMean!==Infinity){
-    const xm=X(rdyMean);
-    svg += '<circle cx="'+xm+'" cy="'+y100+'" r="5" fill="#2A2018" stroke="#FFFBF3" stroke-width="1.5"/>';
-    svg += '<text x="'+xm+'" y="'+(y100+18)+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="9.5" font-weight="700" fill="#2A2018">'+clockShort(atHours(rdyMean))+'</text>';
+    svg += '<circle cx="'+X(rdyMean)+'" cy="'+y100+'" r="5" fill="#2A2018" stroke="#FFFBF3" stroke-width="1.5"/>';
+    svg += '<text x="'+X(rdyMean)+'" y="'+(y100+(mobile?17:18))+'" text-anchor="middle" font-family="ui-monospace,monospace" font-size="'+F.dot+'" font-weight="700" fill="#2A2018">'+clockShort(atHours(rdyMean))+'</text>';
   }
   svg += '</svg>';
   $('graph').innerHTML = svg;
@@ -815,6 +821,8 @@ $('uF').onclick=()=>setUnits('F'); $('uC').onclick=()=>setUnits('C');
 $('startAt').oninput = e=>{ const d=new Date(e.target.value); if(!isNaN(d)) S.start=d; render(); };
 
 document.querySelectorAll('#rangechips .chip').forEach(c=>c.onclick=()=>{ S.mood=c.dataset.mood; render(); });
+
+let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(render, 150); });
 
 $('resetBtn').onclick = ()=>{
   // reset inputs/state to defaults — does NOT touch the saved journal
