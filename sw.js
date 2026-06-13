@@ -1,6 +1,6 @@
-const VERSION = "sd-pizza-v4";
+const VERSION = "sd-pizza-v5";
 const CACHE = "cache-" + VERSION;
-const ASSETS = ["./","./index.html","./manifest.webmanifest","./icon-192.png","./icon-512.png","./icon-512-maskable.png","./apple-touch-icon.png"];
+const ASSETS = ["./","./index.html","./manifest.webmanifest","./favicon.ico","./favicon-32.png","./icon-192.png","./icon-512.png","./icon-512-maskable.png","./apple-touch-icon.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())); });
 self.addEventListener("fetch", e => {
