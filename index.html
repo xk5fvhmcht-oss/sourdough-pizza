@@ -75,6 +75,16 @@
   .stepper button:active{background:var(--ember-bg)}
   .stepper .val{flex:1;text-align:center;font-family:var(--mono);font-size:18px;font-weight:500}
   .wpills{display:flex;gap:7px}
+  .wp{min-width:0}
+  /* Section 1: stepper sized to content, weight pills take the rest and stay equal */
+  .row1 .col:first-child{flex:0 0 auto}
+  .row1 .stepper{width:148px}
+  .row1 .col:last-child{flex:1 1 auto}
+  @media(max-width:480px){
+    .row1{flex-direction:column;gap:14px}
+    .row1 .col{min-width:0}
+    .row1 .stepper{width:168px}
+  }
   .wp{flex:1;border:1.5px solid var(--line2);background:var(--paper2);border-radius:10px;padding:9px 4px;text-align:center;cursor:pointer;font:inherit;color:inherit}
   .wp .wn{font-family:var(--mono);font-size:15px;font-weight:600}
   .wp .wl{font-size:10px;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
@@ -231,7 +241,7 @@
   <!-- 1 -->
   <section class="sec">
     <div class="sec-h"><span class="sec-n">1</span><span class="sec-t">How many, and how big?</span></div>
-    <div class="row">
+    <div class="row row1">
       <div class="col">
         <span class="lab">Dough balls</span>
         <div class="stepper">
