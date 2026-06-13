@@ -49,6 +49,7 @@
   .sec-h{display:flex;align-items:baseline;gap:10px;margin-bottom:14px}
   .sec-n{font-family:var(--disp);font-size:15px;font-weight:600;color:var(--ember);font-variant-numeric:tabular-nums}
   .sec-t{font-family:var(--disp);font-size:18px;font-weight:500;letter-spacing:-.01em}
+  .rmood{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-left:auto;background:var(--paper2);border:1px solid var(--line);border-radius:99px;padding:3px 10px}
   .sec-note{font-size:12.5px;color:var(--ink2);margin:-6px 0 14px}
 
   /* pills / segmented */
@@ -107,10 +108,16 @@
   .bigpct .s{font-size:28px;color:var(--gold)}
   .biggrams{font-family:var(--mono);font-size:15px;color:#E9DCC8}
   .rangechips{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
-  .chip{flex:1;min-width:92px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 11px}
+  .chip{flex:1;min-width:96px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:9px 11px;font:inherit;color:inherit;text-align:left;cursor:pointer;transition:.12s}
+  .chip:hover{border-color:rgba(255,255,255,.32)}
+  .chip.sel{background:rgba(224,162,60,.16);border-color:var(--gold)}
   .chip .cl{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#C9B79A}
   .chip .cv{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:2px}
+  .chip .cg{font-family:var(--mono);font-size:12px;color:#A99577;margin-top:1px}
+  .chip.sel .cg{color:#E6D4B5}
   .chip.fast .cv{color:#F0B967} .chip.slow .cv{color:#8FC3DC}
+  .chiphint{font-size:11.5px;color:#B7A488;margin-top:10px;line-height:1.5}
+  #moodTag{color:var(--gold)}
   .rcaution{display:none;margin-top:13px;font-size:12px;line-height:1.5;color:#F0C27A;
     background:rgba(224,87,59,.12);border:1px solid rgba(240,160,80,.3);border-radius:9px;padding:9px 12px}
   .rcaution.show{display:block}
@@ -327,12 +334,13 @@
   <div class="result">
     <div class="rk">Weigh this much starter</div>
     <div class="bigpct"><span id="pMean">9.5</span><span class="s">%</span></div>
-    <div class="biggrams"><span id="pGrams">88</span> g ripe starter · into <span id="flourG">928</span> g flour</div>
-    <div class="rangechips">
-      <div class="chip slow"><div class="cl">if it's sluggish</div><div class="cv" id="pSlow">12.4%</div></div>
-      <div class="chip"><div class="cl">best guess</div><div class="cv" id="pMid">9.5%</div></div>
-      <div class="chip fast"><div class="cl">if it's lively</div><div class="cv" id="pFast">6.5%</div></div>
+    <div class="biggrams"><span id="pGrams">88</span> g ripe starter<span id="moodTag"></span> · into <span id="flourG">928</span> g flour</div>
+    <div class="rangechips" id="rangechips">
+      <button type="button" class="chip slow" data-mood="slow"><div class="cl">if it's sluggish</div><div class="cv" id="pSlow">12.4%</div><div class="cg" id="gSlow">—</div></button>
+      <button type="button" class="chip sel" data-mood="mid"><div class="cl">best guess</div><div class="cv" id="pMid">9.5%</div><div class="cg" id="gMid">—</div></button>
+      <button type="button" class="chip fast" data-mood="fast"><div class="cl">if it's lively</div><div class="cv" id="pFast">6.5%</div><div class="cg" id="gFast">—</div></button>
     </div>
+    <div class="chiphint">Tap the mood you judge your starter to be in — the whole weigh-out updates to match. Not sure? Stay on best guess, or measure today's doubling time above.</div>
     <div class="rcaution" id="rcaution"></div>
   </div>
 
@@ -353,7 +361,7 @@
 
   <!-- RECIPE -->
   <section class="sec recipe">
-    <div class="sec-h"><span class="sec-n">→</span><span class="sec-t">Weigh out</span></div>
+    <div class="sec-h"><span class="sec-n">→</span><span class="sec-t">Weigh out</span><span class="rmood" id="rmood"></span></div>
     <div class="ri"><div class="rn"><span class="dot" style="background:#C9A876"></span>Caputo 00 flour</div><div class="rg"><span id="rFlour">928</span><small>g</small></div></div>
     <div class="ri"><div class="rn"><span class="dot" style="background:var(--cold)"></span>Water</div><div class="rg"><span id="rWater">578</span><small>g</small></div></div>
     <div class="ri"><div class="rn"><span class="dot" style="background:var(--gold)"></span>Ripe starter</div><div class="rg"><span id="rStarter">88</span><small>g</small></div></div>
@@ -483,7 +491,7 @@ const S = {
   balls:6, ballW:270, oven:'gozney', hyd:64,
   today:0, fast:4, slow:8,
   roomT:75, roomH:4, fridgeT:37, fridgeH:24,
-  units:'F', offset:1.5, start:new Date(),
+  units:'F', offset:1.5, start:new Date(), mood:'mid',
   journal: load()
 };
 
@@ -526,21 +534,36 @@ function compute(){
   const pOf = tau => Math.max(0.005, R / Math.pow(2, scheduleD(tau, s)));
   const pMean = pOf(meanTau), pFast = pOf(fastTau), pSlow = pOf(slowTau);
   const totalMass = S.balls * S.ballW;
-  const r = recipe(totalMass, S.hyd/100, 0.028, pMean, 1.0);
+  const mk = p => recipe(totalMass, S.hyd/100, 0.028, p, 1.0);
+  const rMean = mk(pMean), rFast = mk(pFast), rSlow = mk(pSlow);
+  const r = rMean;
   const Dready = Math.log2(R / pMean);
-  return { s, meanTau, fastTau, slowTau, pMean, pFast, pSlow, r, Dready, R, er, totalMass };
+  return { s, meanTau, fastTau, slowTau, pMean, pFast, pSlow, r, rMean, rFast, rSlow, Dready, R, er, totalMass };
 }
 
 function render(){
   const m = compute();
-  // result
-  $('pMean').textContent = (m.pMean*100).toFixed(1);
-  $('pGrams').textContent = Math.round(m.r.starter);
-  $('flourG').textContent = Math.round(m.r.flour);
+  // map selected mood -> percentage, recipe, label
+  const moods = {
+    slow: { p:m.pSlow, r:m.rSlow, word:'sluggish-day dose' },
+    mid:  { p:m.pMean, r:m.rMean, word:'best guess' },
+    fast: { p:m.pFast, r:m.rFast, word:'lively-day dose' },
+  };
+  const sel = moods[S.mood] || moods.mid;
+  // hero reflects the selected mood
+  $('pMean').textContent = (sel.p*100).toFixed(1);
+  $('pGrams').textContent = Math.round(sel.r.starter);
+  $('flourG').textContent = Math.round(sel.r.flour);
+  $('moodTag').textContent = S.mood==='mid' ? '' : ' · '+sel.word;
+  // chips: percentage + starter grams for each
   $('pMid').textContent  = (m.pMean*100).toFixed(1)+'%';
   $('pFast').textContent = (m.pFast*100).toFixed(1)+'%';
   $('pSlow').textContent = (m.pSlow*100).toFixed(1)+'%';
-  // plausibility caution at the extremes (model least reliable, impractical doses)
+  $('gMid').textContent  = Math.round(m.rMean.starter)+' g';
+  $('gFast').textContent = Math.round(m.rFast.starter)+' g';
+  $('gSlow').textContent = Math.round(m.rSlow.starter)+' g';
+  document.querySelectorAll('#rangechips .chip').forEach(c=>c.classList.toggle('sel', c.dataset.mood===S.mood));
+  // plausibility caution keys off the best guess (the recommendation)
   const pc = m.pMean*100, rc = $('rcaution');
   let cmsg = '';
   if(pc < 4.5){
@@ -549,12 +572,13 @@ function render(){
     cmsg = 'This is nearly same-day territory \u2014 a short, warm schedule that won\u2019t build much sourdough flavour or strength. Add a long fridge phase if you want the tang and extensibility; keep it as-is if you just need dough fast.';
   }
   if(cmsg){ rc.textContent = cmsg; rc.classList.add('show'); } else { rc.classList.remove('show'); }
-  // recipe
-  $('rFlour').textContent = Math.round(m.r.flour);
-  $('rWater').textContent = Math.round(m.r.water);
-  $('rStarter').textContent = Math.round(m.r.starter);
-  $('rSalt').textContent = Math.round(m.r.salt);
-  $('rHyd').textContent = Math.round(m.r.finalHyd*100)+'%';
+  // recipe table reflects the selected mood
+  $('rmood').textContent = sel.word + ' · ' + (sel.p*100).toFixed(1) + '%';
+  $('rFlour').textContent = Math.round(sel.r.flour);
+  $('rWater').textContent = Math.round(sel.r.water);
+  $('rStarter').textContent = Math.round(sel.r.starter);
+  $('rSalt').textContent = Math.round(sel.r.salt);
+  $('rHyd').textContent = Math.round(sel.r.finalHyd*100)+'%';
   $('rTotal').textContent = Math.round(m.totalMass);
   // water temp (3-factor DDT, spiral friction ~6°F, flour≈room)
   const ddt = 76, friction = 6;
@@ -564,6 +588,8 @@ function render(){
   // steps echo
   $('stepRoom').textContent = fmtH(S.roomH);
   $('stepFridge').textContent = fmtH(S.fridgeH);
+  // timing follows the SELECTED dose, so the graph and the weigh-out agree
+  m.Dready = Math.log2(m.R / sel.p);
   // ready times (wall clock)
   const rdyMean = readyTime(m.meanTau, m.Dready, m.s);
   const rdyFast = readyTime(m.fastTau, m.Dready, m.s);
@@ -577,10 +603,12 @@ function render(){
   } else { $('pullTxt').innerHTML = ''; }
   // ready summary under graph
   const rs = $('readysum');
+  const doseNote = S.mood==='mid' ? '' :
+    '<span style="color:var(--ink3)">Timing below assumes you weighed the <b style="color:var(--ink2)">'+sel.word+'</b> ('+(sel.p*100).toFixed(1)+'%).</span><br>';
   if(rdyMean===Infinity){
-    rs.innerHTML = 'On a typical day this schedule doesn\u2019t reach openable \u2014 add a little starter, warm the counter, or give it more time.';
+    rs.innerHTML = doseNote + 'On a typical day this schedule doesn\u2019t reach openable \u2014 add a little starter, warm the counter, or give it more time.';
   } else {
-    rs.innerHTML = 'Typical day, openable <b>'+clockFull(atHours(rdyMean))+'</b>'+
+    rs.innerHTML = doseNote + 'Typical day, openable <b>'+clockFull(atHours(rdyMean))+'</b>'+
       ' \u00b7 start checking <b>'+(rdyFast===Infinity?'\u2014':clockFull(atHours(rdyFast)))+'</b>'+
       ' \u00b7 by <b>'+(rdySlow===Infinity?'past the chart':clockFull(atHours(rdySlow)))+'</b> at the latest.';
   }
@@ -773,9 +801,11 @@ $('uF').onclick=()=>setUnits('F'); $('uC').onclick=()=>setUnits('C');
 
 $('startAt').oninput = e=>{ const d=new Date(e.target.value); if(!isNaN(d)) S.start=d; render(); };
 
+document.querySelectorAll('#rangechips .chip').forEach(c=>c.onclick=()=>{ S.mood=c.dataset.mood; render(); });
+
 $('resetBtn').onclick = ()=>{
   // reset inputs/state to defaults — does NOT touch the saved journal
-  S.balls=6; S.ballW=270; S.oven='gozney'; S.hyd=64; S.today=0;
+  S.balls=6; S.ballW=270; S.oven='gozney'; S.hyd=64; S.today=0; S.mood='mid';
   S.fast=4; S.slow=8; S.roomT=75; S.roomH=4; S.fridgeT=37; S.fridgeH=24; S.offset=1.5;
   $('ballsVal').textContent='6';
   document.querySelectorAll('#wpills .wp').forEach(x=>x.classList.toggle('on', x.dataset.w==='270'));

@@ -28,6 +28,7 @@ D         =  Σ phases of  (t/τ) · Q10^((T − T_counter)/10)
 
 ## What it gives you
 - Starter **%** and **grams**, plus the lively/typical/sluggish range
+- **Per-mood weigh-out.** The sluggish / best-guess / lively chips each show the starter in grams, and tapping one recomputes the entire recipe (flour, water, starter, salt) and the graph timing for that dose — no mental math to convert a percentage you didn't pick.
 - A **progress-to-openable** graph (0–100%): the openable line is 100%, the faint zone above is "over." Three curves are your starter's good-day / typical / slow-day moods, and where each crosses 100% is when the ball is ready.
 - **Real day & clock times** everywhere. Set when you'll mix and the graph's x-axis, the ready dots, the fridge-in time, and the temper pull-time all become actual times like "Sat 6 PM" — no hour-counting. A gentle nudge appears if a typical day would land openable in the small hours, with how to shift it back toward dinnertime.
 - Full weigh-out (flour, water, starter, salt 2.8% Neapolitan) + final hydration
