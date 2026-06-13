@@ -71,7 +71,7 @@
   .stepper button:active{background:var(--ember-bg)}
   .stepper .val{flex:1;text-align:center;font-family:var(--mono);font-size:18px;font-weight:500}
   .wpills{display:flex;gap:7px}
-  .wp{flex:1;border:1.5px solid var(--line2);background:var(--paper2);border-radius:10px;padding:9px 4px;text-align:center;cursor:pointer}
+  .wp{flex:1;border:1.5px solid var(--line2);background:var(--paper2);border-radius:10px;padding:9px 4px;text-align:center;cursor:pointer;font:inherit;color:inherit}
   .wp .wn{font-family:var(--mono);font-size:15px;font-weight:600}
   .wp .wl{font-size:10px;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
   .wp.on{border-color:var(--ember);background:var(--ember-bg)}
@@ -81,6 +81,9 @@
   .slider .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
   .slider .v{font-family:var(--mono);font-size:16px;font-weight:600}
   .slider .v small{color:var(--ink3);font-weight:400;font-size:12px}
+  .clearbtn{border:1px solid var(--line2);background:var(--paper2);color:var(--ink2);font-family:var(--mono);
+    font-size:10px;padding:2px 7px;border-radius:99px;cursor:pointer;margin-left:6px;vertical-align:middle}
+  .clearbtn:active{background:var(--ember-bg)}
   input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:99px;
     background:linear-gradient(90deg,var(--ember) 0,var(--gold) 100%);outline:none;margin:8px 0 2px}
   input[type=range].cold{background:linear-gradient(90deg,var(--cold) 0,#9bbccb 100%)}
@@ -108,6 +111,9 @@
   .chip .cl{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:#C9B79A}
   .chip .cv{font-family:var(--mono);font-size:17px;font-weight:600;margin-top:2px}
   .chip.fast .cv{color:#F0B967} .chip.slow .cv{color:#8FC3DC}
+  .rcaution{display:none;margin-top:13px;font-size:12px;line-height:1.5;color:#F0C27A;
+    background:rgba(224,87,59,.12);border:1px solid rgba(240,160,80,.3);border-radius:9px;padding:9px 12px}
+  .rcaution.show{display:block}
 
   /* graph */
   .graph-wrap{margin-top:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px 12px 8px;box-shadow:var(--sh)}
@@ -226,10 +232,10 @@
       </div>
       <div class="col">
         <span class="lab">Weight each</span>
-        <div class="wpills" id="wpills">
-          <div class="wp" data-w="230"><div class="wn">230</div><div class="wl">thin</div></div>
-          <div class="wp" data-w="250"><div class="wn">250</div><div class="wl">classic</div></div>
-          <div class="wp on" data-w="270"><div class="wn">270</div><div class="wl">generous</div></div>
+        <div class="wpills" id="wpills" role="group" aria-label="Weight per ball">
+          <button type="button" class="wp" data-w="230"><div class="wn">230</div><div class="wl">thin</div></button>
+          <button type="button" class="wp" data-w="250"><div class="wn">250</div><div class="wl">classic</div></button>
+          <button type="button" class="wp on" data-w="270"><div class="wn">270</div><div class="wl">generous</div></button>
         </div>
       </div>
     </div>
@@ -264,10 +270,10 @@
     <div class="slider">
       <div class="top">
         <span class="lab" style="margin:0">Today it doubled in</span>
-        <span class="v" id="todayV">—<small> not measured</small></span>
+        <span class="v" id="todayV">—<small> not measured</small> <button type="button" id="todayClear" class="clearbtn" style="display:none">✕ clear</button></span>
       </div>
-      <input type="range" id="today" min="2" max="12" step="0.5" value="0">
-      <div class="hintline">Slide to set today's measured doubling time, or leave at “—” to use your range below.</div>
+      <input type="range" id="today" min="2" max="12" step="0.5" value="2">
+      <div class="hintline">Slide to set today's measured doubling time. Tap <b>clear</b> to fall back to your usual range below.</div>
     </div>
 
     <div class="row" style="margin-top:14px">
@@ -327,6 +333,7 @@
       <div class="chip"><div class="cl">best guess</div><div class="cv" id="pMid">9.5%</div></div>
       <div class="chip fast"><div class="cl">if it's lively</div><div class="cv" id="pFast">6.5%</div></div>
     </div>
+    <div class="rcaution" id="rcaution"></div>
   </div>
 
   <!-- NUDGE -->
@@ -359,7 +366,7 @@
     <div class="step">
       <span class="ic">🌀</span>
       <div><div class="sh">Spiral mix — don't overdo it</div>
-        <div class="sb">Everything in together: flour, water, ripe starter, then salt. No autolyse, no folds. Spiral runs warm, so aim for a <b>dough temp near 76°F</b> — start with water at about <b id="waterT">72°F</b>. Stop at a smooth, just-windowpane dough; sourdough develops fast and a spiral can blow past it.</div></div>
+        <div class="sb">Everything in together: flour, water, ripe starter, then salt. No autolyse, no folds. Spiral runs warm, so aim for a <b>dough temp near <span id="ddtTxt">76°F</span></b> — start with water at about <b id="waterT">72°F</b>. Stop at a smooth, just-windowpane dough; sourdough develops fast and a spiral can blow past it.</div></div>
     </div>
     <div class="step">
       <span class="ic">🔴</span>
@@ -395,6 +402,10 @@
       </div>
     </details>
   </section>
+
+  <div style="text-align:center;margin-top:20px">
+    <button type="button" id="resetBtn" style="border:1px solid var(--line2);background:transparent;color:var(--ink2);font-family:var(--mono);font-size:11px;letter-spacing:.05em;padding:8px 16px;border-radius:99px;cursor:pointer">↺ Reset inputs to defaults</button>
+  </div>
 
   <p class="footnote">
     <b>How it reasons.</b> Each phase of your schedule delivers a number of starter “doublings” — fast at the counter, roughly 5× slower at 37°F. The dough is ready at a fixed maturity, so more starter needs fewer doublings: that's the whole solve. Your bread (20% starter, pulled at peak) sets the baseline; pizza lands a notch earlier so there's gluten left to stretch. The three lines are your starter's good-day / typical / slow-day moods — the gap between them is the app being honest that it's guessing, and it tightens every time you log a bake. It assumes Caputo 00 and a 100% starter, and past ~48 h the cold turns tangy and the dough gets fragile. Watch the ball, not the clock — that's what the finger test is for.
@@ -529,6 +540,15 @@ function render(){
   $('pMid').textContent  = (m.pMean*100).toFixed(1)+'%';
   $('pFast').textContent = (m.pFast*100).toFixed(1)+'%';
   $('pSlow').textContent = (m.pSlow*100).toFixed(1)+'%';
+  // plausibility caution at the extremes (model least reliable, impractical doses)
+  const pc = m.pMean*100, rc = $('rcaution');
+  let cmsg = '';
+  if(pc < 4.5){
+    cmsg = 'This is a very small dose on a long, cold schedule \u2014 exactly where the model is least sure, since it slightly over-counts fermentation past ~48 h. Take the number as a soft floor and let the finger test be the real call; shorten the fridge for a more forgiving result.';
+  } else if(pc > 20){
+    cmsg = 'This is nearly same-day territory \u2014 a short, warm schedule that won\u2019t build much sourdough flavour or strength. Add a long fridge phase if you want the tang and extensibility; keep it as-is if you just need dough fast.';
+  }
+  if(cmsg){ rc.textContent = cmsg; rc.classList.add('show'); } else { rc.classList.remove('show'); }
   // recipe
   $('rFlour').textContent = Math.round(m.r.flour);
   $('rWater').textContent = Math.round(m.r.water);
@@ -540,6 +560,7 @@ function render(){
   const ddt = 76, friction = 6;
   const wT = Math.round(3*ddt - 2*S.roomT - friction);
   $('waterT').textContent = (S.units==='F' ? wT+'°F' : Math.round(F2C(wT))+'°C');
+  $('ddtTxt').textContent = (S.units==='F' ? ddt+'°F' : Math.round(F2C(ddt))+'°C');
   // steps echo
   $('stepRoom').textContent = fmtH(S.roomH);
   $('stepFridge').textContent = fmtH(S.fridgeH);
@@ -707,7 +728,7 @@ function tempF(id){ return S.units==='F' ? num($(id).value) : num($(id).value)*9
 
 /* ---------------- input wiring ---------------- */
 function syncFromInputs(){
-  S.fast = num($('fast').value,4); S.slow = num($('slow').value,8);
+  S.fast = Math.max(0.5, num($('fast').value,4)); S.slow = Math.max(0.5, num($('slow').value,8));
   S.roomT = tempF('roomT'); S.roomH = Math.max(0,num($('roomH').value,4));
   S.fridgeT = tempF('fridgeT'); S.fridgeH = Math.max(0,num($('fridgeH').value,24));
 }
@@ -733,10 +754,17 @@ document.querySelectorAll('#ovenSeg .pill').forEach(el=>el.onclick=()=>{
 $('hyd').oninput = e=>{ S.hyd=+e.target.value; $('hydV').innerHTML=S.hyd+'<small>%</small>'; render(); };
 
 $('today').oninput = e=>{
-  const v=+e.target.value; S.today=v;
-  $('todayV').innerHTML = v>0 ? v.toFixed(1)+'<small> h</small>' : '—<small> not measured</small>';
+  S.today = +e.target.value;
+  $('todayV').innerHTML = S.today.toFixed(1)+'<small> h</small> <button type="button" id="todayClear" class="clearbtn">✕ clear</button>';
+  $('todayClear').onclick = clearToday;
   render();
 };
+function clearToday(){
+  S.today = 0;
+  $('todayV').innerHTML = '—<small> not measured</small>';
+  render();
+}
+$('todayClear').onclick = clearToday;
 ['fast','slow','roomT','roomH','fridgeT','fridgeH'].forEach(id=>{
   $(id).oninput = ()=>{ syncFromInputs(); render(); };
 });
@@ -744,6 +772,25 @@ $('today').oninput = e=>{
 $('uF').onclick=()=>setUnits('F'); $('uC').onclick=()=>setUnits('C');
 
 $('startAt').oninput = e=>{ const d=new Date(e.target.value); if(!isNaN(d)) S.start=d; render(); };
+
+$('resetBtn').onclick = ()=>{
+  // reset inputs/state to defaults — does NOT touch the saved journal
+  S.balls=6; S.ballW=270; S.oven='gozney'; S.hyd=64; S.today=0;
+  S.fast=4; S.slow=8; S.roomT=75; S.roomH=4; S.fridgeT=37; S.fridgeH=24; S.offset=1.5;
+  $('ballsVal').textContent='6';
+  document.querySelectorAll('#wpills .wp').forEach(x=>x.classList.toggle('on', x.dataset.w==='270'));
+  document.querySelectorAll('#ovenSeg .pill').forEach(x=>x.classList.toggle('on', x.dataset.oven==='gozney'));
+  $('hyd').value=64; $('hydV').innerHTML='64<small>%</small>';
+  $('today').value=2; $('todayV').innerHTML='—<small> not measured</small>';
+  $('fast').value=4; $('slow').value=8;
+  $('offset').value=1.5; $('offV').innerHTML='1.50<small> doublings</small>';
+  // temps respect current unit
+  const setT=(id,f)=>{ $(id).value = S.units==='F'? f : Math.round(F2C(f)); };
+  setT('roomT',75); setT('fridgeT',37);
+  $('roomH').value=4; $('fridgeH').value=24;
+  S.start=roundDate(new Date(),15); $('startAt').value=localISO(S.start);
+  syncFromInputs(); render(); toast('Inputs reset — journal kept');
+};
 
 $('offset').oninput = e=>{ S.offset=+e.target.value; $('offV').innerHTML=S.offset.toFixed(2)+'<small> doublings</small>'; render(); };
 
@@ -759,6 +806,7 @@ $('saveBtn').onclick = ()=>{
 };
 $('cancelBtn').onclick=()=>$('modal').classList.remove('show');
 $('modal').onclick=e=>{ if(e.target===$('modal')) $('modal').classList.remove('show'); };
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') $('modal').classList.remove('show'); });
 document.querySelectorAll('#outsel button').forEach(b=>b.onclick=()=>{
   pendingOutcome=b.dataset.out;
   document.querySelectorAll('#outsel button').forEach(x=>x.classList.remove('sel'));
