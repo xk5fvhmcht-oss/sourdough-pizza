@@ -213,6 +213,36 @@
   .outsel .oe{font-size:19px;display:block;margin-bottom:3px}
 
   .footnote{font-size:11.5px;color:var(--ink3);line-height:1.6;margin-top:22px}
+
+  /* ---- bake session ---- */
+  .session{border-color:var(--ember);background:linear-gradient(180deg,#FFFBF3 0,#FDF6EC 100%)}
+  .sess-row{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+  .sess-btn{flex:1;min-width:140px;background:var(--ink);color:var(--paper);border:none;border-radius:12px;
+    padding:13px 16px;font-family:var(--disp);font-weight:600;font-size:16px;cursor:pointer;text-align:center}
+  .sess-btn:active{transform:translateY(1px)}
+  .sess-btn.running{background:var(--ember-d)}
+  .sess-btn.done{background:#6E8B3D;color:#fff}
+  .wake-btn{display:flex;align-items:center;gap:7px;border:1.5px solid var(--line2);background:var(--paper2);
+    border-radius:12px;padding:11px 14px;cursor:pointer;font:inherit;color:var(--ink2)}
+  .wake-btn.on{border-color:var(--gold);background:#FEF7E6;color:var(--amber)}
+  .wake-ic{font-size:17px}
+  .wake-lbl{font-family:var(--mono);font-size:12px;letter-spacing:.04em}
+  .wake-note{font-size:11.5px;color:var(--ink3);margin-top:8px;line-height:1.5}
+  .stages{display:grid;gap:10px}
+  .stage{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;
+    border:1.5px solid var(--line);border-radius:12px;background:var(--paper2);opacity:.45;transition:.2s}
+  .stage.active{opacity:1;border-color:var(--ember);background:#FEF9F4}
+  .stage.done{opacity:.7;border-color:#6E8B3D}
+  .stg-name{font-family:var(--disp);font-weight:600;font-size:15px}
+  .stg-sub{font-size:12px;color:var(--ink2);margin-top:2px;font-family:var(--mono)}
+  .stg-ring{position:relative;width:52px;height:52px;flex:none}
+  .stg-ring svg{width:52px;height:52px;transform:rotate(-90deg)}
+  .ring-bg{fill:none;stroke:var(--line);stroke-width:3}
+  .ring-fg{fill:none;stroke:var(--ember);stroke-width:3;stroke-linecap:round;
+    stroke-dasharray:125.6;stroke-dashoffset:125.6;transition:stroke-dashoffset .8s}
+  .stage.done .ring-fg{stroke:#6E8B3D;stroke-dashoffset:0}
+  .ring-time{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--ink)}
   .footnote b{color:var(--ink2)}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);
     font-size:13px;padding:11px 18px;border-radius:99px;opacity:0;transition:.25s;pointer-events:none;z-index:60}
@@ -381,6 +411,42 @@
     <div class="ri"><div class="rn"><span class="dot" style="background:#8C7C68"></span>Sea salt <span style="color:var(--ink3);font-size:12px">2.8%</span></div><div class="rg"><span id="rSalt">26</span><small>g</small></div></div>
     <div class="totline"><span>final hydration <b id="rHyd" style="color:var(--ink)">64%</b></span><span>total dough <b id="rTotal" style="color:var(--ink)">1620</b> g</span></div>
   </section>
+
+  <!-- BAKE SESSION -->
+  <div class="sec session" id="session">
+    <div class="sec-h"><span class="sec-n">▶</span><span class="sec-t">Bake session</span></div>
+    <p class="sec-note">Tap <b>Start mixing</b> when flour meets water. The timers count each stage and buzz you at the transition. Toggle screen-on so the phone doesn't go dark in the middle of mixing.</p>
+    <div class="sess-row">
+      <button type="button" class="sess-btn" id="sessBtn">▶ Start mixing</button>
+      <button type="button" class="wake-btn" id="wakeBtn" title="Keep screen on">
+        <span class="wake-ic">☀️</span><span class="wake-lbl">Screen on</span>
+      </button>
+    </div>
+    <div class="stages" id="stages">
+      <div class="stage" id="stg0" data-phase="mix">
+        <div class="stg-left">
+          <div class="stg-name">🌀 Mixing &amp; bulk rise</div>
+          <div class="stg-sub" id="stg0sub">Counter <span id="stg0dur">—</span></div>
+        </div>
+        <div class="stg-ring" id="stg0ring"><svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20"/><circle class="ring-fg" id="stg0arc" cx="24" cy="24" r="20"/></svg><span class="ring-time" id="stg0t">—</span></div>
+      </div>
+      <div class="stage" id="stg1" data-phase="fridge">
+        <div class="stg-left">
+          <div class="stg-name">❄️ Cold ferment</div>
+          <div class="stg-sub" id="stg1sub">Fridge <span id="stg1dur">—</span></div>
+        </div>
+        <div class="stg-ring" id="stg1ring"><svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20"/><circle class="ring-fg" id="stg1arc" cx="24" cy="24" r="20"/></svg><span class="ring-time" id="stg1t">—</span></div>
+      </div>
+      <div class="stage" id="stg2" data-phase="temper">
+        <div class="stg-left">
+          <div class="stg-name">👉 Temper</div>
+          <div class="stg-sub">1–2 h · then bake</div>
+        </div>
+        <div class="stg-ring" id="stg2ring"><svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20"/><circle class="ring-fg" id="stg2arc" cx="24" cy="24" r="20"/></svg><span class="ring-time" id="stg2t">—</span></div>
+      </div>
+    </div>
+    <div class="wake-note" id="wakeNote"></div>
+  </div>
 
   <!-- STEPS -->
   <div class="steps">
@@ -610,6 +676,7 @@ function render(){
   // steps echo
   $('stepRoom').textContent = fmtH(S.roomH);
   $('stepFridge').textContent = fmtH(S.fridgeH);
+  updateSessDurations();
   // timing follows the SELECTED dose, so the graph and the weigh-out agree
   m.Dready = Math.log2(m.R / sel.p);
   // ready times (wall clock)
@@ -821,6 +888,96 @@ $('uF').onclick=()=>setUnits('F'); $('uC').onclick=()=>setUnits('C');
 $('startAt').oninput = e=>{ const d=new Date(e.target.value); if(!isNaN(d)) S.start=d; render(); };
 
 document.querySelectorAll('#rangechips .chip').forEach(c=>c.onclick=()=>{ S.mood=c.dataset.mood; render(); });
+
+/* ---- Wake Lock ---- */
+let wakeLock=null;
+async function requestWake(){
+  if(!('wakeLock' in navigator)){ setWakeNote('Screen-on not supported in this browser.'); return; }
+  try{
+    wakeLock = await navigator.wakeLock.request('screen');
+    $('wakeBtn').classList.add('on');
+    setWakeNote('Screen will stay on while this tab is visible.');
+    wakeLock.addEventListener('release',()=>{
+      $('wakeBtn').classList.remove('on');
+      setWakeNote('Screen lock released (tab hidden or low battery).');
+      wakeLock=null;
+    });
+  } catch(e){
+    // likely iOS PWA bug < 18.4 or power-save mode
+    setWakeNote('Couldn\u2019t lock the screen \u2014 try in Safari (not installed) or check battery-save mode.');
+  }
+}
+function releaseWake(){ if(wakeLock){ wakeLock.release(); wakeLock=null; } $('wakeBtn').classList.remove('on'); setWakeNote(''); }
+function setWakeNote(t){ $('wakeNote').textContent=t; }
+// re-acquire when tab becomes visible again (OS releases it on background)
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='visible' && $('wakeBtn').classList.contains('on') && !wakeLock) requestWake(); });
+$('wakeBtn').onclick=()=>{ $('wakeBtn').classList.contains('on') ? releaseWake() : requestWake(); };
+
+/* ---- Stage timers ---- */
+const CIRC=125.6; // 2π×20
+const PHASES=[
+  {id:'stg0', durId:'stg0dur', timeId:'stg0t', arcId:'stg0arc', hFn:()=>S.roomH,   label:'counter'},
+  {id:'stg1', durId:'stg1dur', timeId:'stg1t', arcId:'stg1arc', hFn:()=>S.fridgeH, label:'fridge'},
+  {id:'stg2', durId:'stg2dur', timeId:'stg2t', arcId:'stg2arc', hFn:()=>1.5,        label:'temper'},
+];
+let sessStart=null, sessPhase=-1, sessRaf=null;
+function fmtCountdown(ms){
+  if(ms<=0) return 'done';
+  const h=Math.floor(ms/3600000), m=Math.floor((ms%3600000)/60000), s=Math.floor((ms%60000)/1000);
+  return h>0 ? h+'h '+String(m).padStart(2,'0')+'m' : m+'m '+String(s).padStart(2,'0')+'s';
+}
+function updateSessDurations(){
+  PHASES.forEach(p=>{ if(p.durId && $(p.durId)){ const h=p.hFn(); $(p.durId).textContent=h<2?(h*60|0)+'m':fmtH(h); } });
+}
+function sessLoop(){
+  if(!sessStart){ sessRaf=null; return; }
+  const now=Date.now(), elapsed=(now-sessStart)/3600000;
+  let acc=0; let found=false;
+  for(let i=0;i<PHASES.length;i++){
+    const ph=PHASES[i], dur=ph.hFn();
+    const phStart=acc, phEnd=acc+dur;
+    if(elapsed<phEnd || i===PHASES.length-1){
+      // active phase
+      if(sessPhase!==i){
+        if(sessPhase>=0){ $('stg'+sessPhase).classList.remove('active'); $('stg'+sessPhase).classList.add('done'); }
+        $('stg'+i).classList.add('active');
+        sessPhase=i;
+        if(i>0) buzz(); // buzz on phase transition
+      }
+      const rem=Math.max(0,(phEnd-elapsed)*3600000);
+      const pct=Math.max(0,Math.min(1,(elapsed-phStart)/dur));
+      $(ph.arcId).style.strokeDashoffset=CIRC*(1-pct);
+      $(ph.timeId).textContent = elapsed>=phEnd ? '✓' : fmtCountdown(rem);
+      // done phases behind: fill them
+      for(let j=0;j<i;j++){ PHASES[j].arcId&&($(PHASES[j].arcId).style.strokeDashoffset=0); $(PHASES[j].timeId).textContent='✓'; }
+      found=true; break;
+    }
+    acc+=dur;
+  }
+  if(!found){ endSess(); return; }
+  sessRaf=requestAnimationFrame(sessLoop);
+}
+function startSess(){
+  sessStart=Date.now(); sessPhase=-1;
+  PHASES.forEach((p,i)=>{ $('stg'+i).classList.remove('active','done'); $(p.arcId).style.strokeDashoffset=CIRC; $(p.timeId).textContent='—'; });
+  $('sessBtn').textContent='■ Stop session'; $('sessBtn').classList.add('running');
+  if(sessRaf) cancelAnimationFrame(sessRaf);
+  sessRaf=requestAnimationFrame(sessLoop);
+  if(!wakeLock && !$('wakeBtn').classList.contains('on')) { requestWake(); $('wakeBtn').classList.add('on'); }
+}
+function stopSess(){
+  sessStart=null; if(sessRaf){ cancelAnimationFrame(sessRaf); sessRaf=null; }
+  sessPhase=-1;
+  PHASES.forEach((p,i)=>{ $('stg'+i).classList.remove('active','done'); $(p.arcId).style.strokeDashoffset=CIRC; $(p.timeId).textContent='—'; });
+  $('sessBtn').textContent='▶ Start mixing'; $('sessBtn').classList.remove('running','done');
+}
+function endSess(){
+  sessStart=null; sessRaf=null;
+  $('sessBtn').textContent='✓ Done'; $('sessBtn').classList.remove('running'); $('sessBtn').classList.add('done');
+  buzz(); buzz();
+}
+function buzz(){ if('vibrate' in navigator) navigator.vibrate([120,60,120]); }
+$('sessBtn').onclick=()=>{ sessStart ? stopSess() : startSess(); };
 
 let rzT; window.addEventListener('resize', ()=>{ clearTimeout(rzT); rzT=setTimeout(render, 150); });
 
